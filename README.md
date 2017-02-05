@@ -1,2 +1,2 @@
 # mithril-dnd
-Drag'n'drop for the masses
+> Drag'n'drop for the massive

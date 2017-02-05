@@ -1,0 +1,18 @@
+{
+  "name": "mithril-dnd-example",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "rollup --config --watch"
+  },
+  "devDependencies": {
+    "mithril": "1.0.0",
+    "normalize.css": "5.0.0",
+    "rollup": "0.41.4",
+    "rollup-plugin-buble": "0.15.0",
+    "rollup-plugin-commonjs": "7.0.0",
+    "rollup-plugin-filesize": "1.0.1",
+    "rollup-plugin-node-resolve": "2.0.0",
+    "rollup-watch": "3.2.2"
+  }
+}
