@@ -859,6 +859,7 @@ var coreRenderer = function($window) {
 		var element = vnode.dom;
 		var callback = typeof onevent !== "function" ? value : function(e) {
 			var result = value.call(element, e);
+			// console.log('onevent', onevent, element, e, key2, value)
 			onevent.call(element, e);
 			return result
 		};
@@ -934,7 +935,7 @@ var _11 = function($window) {
 	renderService.setEventCallback(function(e) {
 		if (e.redraw !== false) { redraw(); }
 	});
-	
+
 	var callbacks = [];
 	function subscribe(key1, callback) {
 		unsubscribe(key1);
@@ -960,9 +961,9 @@ var _16 = function(redrawService0) {
 			redrawService0.unsubscribe(root);
 			return
 		}
-		
+
 		if (component.view == null) { throw new Error("m.mount(element, component) expects a component, not a vnode") }
-		
+
 		var run0 = function() {
 			redrawService0.render(root, Vnode(component));
 		};
@@ -1072,7 +1073,7 @@ var coreRouter = function($window) {
 			var path = router.getPath();
 			var params = {};
 			var pathname = parsePath(path, params, params);
-			
+
 			var state = $window.history.state;
 			if (state != null) {
 				for (var k in state) { params[k] = state[k]; }
@@ -1093,12 +1094,12 @@ var coreRouter = function($window) {
 			}
 			reject(path, params);
 		}
-		
+
 		if (supportsPushState) { $window.onpopstate = debounceAsync(resolveRoute); }
 		else if (router.prefix.charAt(0) === "#") { $window.onhashchange = resolveRoute; }
 		resolveRoute();
 	};
-	
+
 	return router
 };
 var _20 = function($window, redrawService0) {
@@ -1175,16 +1176,7 @@ m.vnode = Vnode;
 };
 });
 
-var proxy = {};
 window.m = mithril;
-window.proxy = proxy;
-
-window.swap = function (z1, z2) {
-  var assign;
-  (assign = [proxy[z2].fn, proxy[z1].fn], proxy[z1].fn = assign[0], proxy[z2].fn = assign[1]);
-  console.log(("swap " + z1 + " " + z2));
-  mithril.redraw();
-};
 
 // features/tricky stuff:
 //
@@ -1193,40 +1185,33 @@ window.swap = function (z1, z2) {
 // freeze on drop
 // transform on drop
 
+var columns = {
+  todo    : ['Make one element work'],
+  ongoing : [],
+  review  : [],
+  done    : [],
+};
+window.columns = columns;
+
 var ondragstart = function (ev, zoneId) {
-  console.log('dragstart', ev);
   ev.dataTransfer.setData('text/plain', zoneId);
+  ev.dataTransfer.setData('identifier', columns[zoneId].indexOf(ev.target.textContent));
 };
 
-var ondrop = function (ev, zoneId) {
-  console.log('ondrop', ev);
-  ev.preventDefault();
-
-  window.swap(ev.dataTransfer.getData('text'), zoneId);
+// const callback = (...args) => console.log('drop', args)
+var callback = function (id, src, dest) {
+  columns[dest].push(columns[src].splice(columns[src][id])[0]);
 };
 
-var ondragover = function (ev) {
-  ev.preventDefault();
-  ev.dataTransfer.dropEffect = 'move';
-};
-
-var zone = function (zoneId, classes, fn) {
-  if ( fn === void 0 ) fn = undefined;
-
-  if (!proxy[zoneId] || !proxy[zoneId].init) {
-    console.log(zoneId, classes, fn);
-    proxy[zoneId] = { fn: fn, init : true };
-  }
-
-  var vNode = mithril(classes, { ondrop : function (ev) { return ondrop(ev, zoneId); }, ondragover: ondragover }, proxy[zoneId].fn);
-  vNode.children
-    .filter(function (elem) { return elem !== undefined && elem.attrs.draggable; })
-    .forEach(function (elem) {
-    console.log('forEach', zoneId);
-    elem.attrs.ondragstart = function (ev) { return ondragstart(ev, zoneId); };
-  });
-  // console.log('vNode', vNode)
-  return vNode
+var zone = function (zoneId, tag, content) {
+  return mithril(tag, {
+    ondrop : function (ev) {
+      ev.preventDefault();
+      callback(ev.dataTransfer.getData('identifier'), ev.dataTransfer.getData('text'), zoneId);
+    },
+    ondragover  : function ()   { return false; },
+    ondragstart : function (ev) { return ondragstart(ev, zoneId); }
+   }, content)
 };
 
 
@@ -1236,11 +1221,10 @@ mithril.mount(document.querySelector('#app'), {
     //   m('h2', 'todo')
     //   m('.ticket', 'Make one element work'),
     // ]),
-    zone('todo', '.column', [
-      mithril('.ticket', { draggable: true }, 'Make one element work') ]),
-    zone('ongoing', '.column'),
-    zone('review', '.column'),
-    zone('done', '.column') ]; }
+    zone('todo'   , '.column', columns.todo.map(function (el)    { return mithril('.ticket', { draggable : true }, el); } )),
+    zone('ongoing', '.column', columns.ongoing.map(function (el) { return mithril('.ticket', { draggable : true }, el); } )),
+    zone('review' , '.column', columns.review.map(function (el)  { return mithril('.ticket', { draggable : true }, el); } )),
+    zone('done'   , '.column', columns.done.map(function (el)    { return mithril('.ticket', { draggable : true }, el); } )) ]; }
 });
 
 }());

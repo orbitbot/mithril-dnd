@@ -1,16 +1,6 @@
 import m from 'mithril'
 
-const proxy = {}
-const counters = {}
-
 window.m = m
-window.proxy = proxy
-
-window.swap = (z1, z2) => {
-  [proxy[z1].fn, proxy[z2].fn] = [proxy[z2].fn, proxy[z1].fn]
-  console.log(`swap ${ z1 } ${ z2 }`)
-  m.redraw()
-}
 
 // features/tricky stuff:
 //
@@ -19,38 +9,33 @@ window.swap = (z1, z2) => {
 // freeze on drop
 // transform on drop
 
+const columns = {
+  todo    : ['Make one element work'],
+  ongoing : [],
+  review  : [],
+  done    : [],
+}
+window.columns = columns
+
 const ondragstart = (ev, zoneId) => {
-  console.log('dragstart', ev)
-  ev.dataTransfer.setData('text/plain', zoneId);
+  ev.dataTransfer.setData('text/plain', zoneId)
+  ev.dataTransfer.setData('identifier', columns[zoneId].indexOf(ev.target.textContent))
 }
 
-const ondrop = (ev, zoneId) => {
-  console.log('ondrop', ev)
-  ev.preventDefault()
-
-  window.swap(ev.dataTransfer.getData('text'), zoneId);
+// const callback = (...args) => console.log('drop', args)
+const callback = (id, src, dest) => {
+  columns[dest].push(columns[src].splice(columns[src][id])[0])
 }
 
-const ondragover = (ev) => {
-  ev.preventDefault()
-  ev.dataTransfer.dropEffect = 'move'
-}
-
-const zone = (zoneId, classes, fn = undefined) => {
-  if (!proxy[zoneId] || !proxy[zoneId].init) {
-    console.log(zoneId, classes, fn)
-    proxy[zoneId] = { fn, init : true }
-  }
-
-  let vNode = m(classes, { ondrop : (ev) => ondrop(ev, zoneId), ondragover }, proxy[zoneId].fn)
-  vNode.children
-    .filter((elem) => elem !== undefined && elem.attrs.draggable)
-    .forEach((elem) => {
-    console.log('forEach', zoneId)
-    elem.attrs.ondragstart = (ev) => ondragstart(ev, zoneId)
-  })
-  // console.log('vNode', vNode)
-  return vNode
+const zone = (zoneId, tag, content) => {
+  return m(tag, {
+    ondrop : (ev) => {
+      ev.preventDefault()
+      callback(ev.dataTransfer.getData('identifier'), ev.dataTransfer.getData('text'), zoneId)
+    },
+    ondragover  : ()   => false,
+    ondragstart : (ev) => ondragstart(ev, zoneId)
+   }, content)
 }
 
 
@@ -60,11 +45,9 @@ m.mount(document.querySelector('#app'), {
     //   m('h2', 'todo')
     //   m('.ticket', 'Make one element work'),
     // ]),
-    zone('todo', '.column', [
-      m('.ticket', { draggable: true }, 'Make one element work'),
-    ]),
-    zone('ongoing', '.column'),
-    zone('review', '.column'),
-    zone('done', '.column'),
+    zone('todo'   , '.column', columns.todo.map((el)    => m('.ticket', { draggable : true }, el) )),
+    zone('ongoing', '.column', columns.ongoing.map((el) => m('.ticket', { draggable : true }, el) )),
+    zone('review' , '.column', columns.review.map((el)  => m('.ticket', { draggable : true }, el) )),
+    zone('done'   , '.column', columns.done.map((el)    => m('.ticket', { draggable : true }, el) )),
   ]
 })
